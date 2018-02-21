@@ -84,22 +84,14 @@ const expressionParser = (input) => {
       if(result){
         operands.push(result[0])
         result = (interpret(checkIntermittentSpace(result[1])))
-        if (result){
-          operands.push(result[0])
-        } else if(operator === '+' || operator === '-'){
-          swap(operands, 0)
-        } else {
-          swap(operands, 1)
-        }
+        result ? operands.push(result[0]):
+                (operator === '+' || operator === '-')?swap(operands, 0):swap(operands, 1)
+        
       } else return null
      } else return null
-    
   }
-  if (operator && operands){
-    return evaluate(operator, operands)
-  }
- 
-}
+  if (operator && operands){return evaluate(operator, operands)}
+ }
 
 const checkIntermittentSpace = (input) =>{
   while(input[0]!==')' && whiteSpaceParser(input)){
