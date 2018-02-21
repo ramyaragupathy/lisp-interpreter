@@ -1,8 +1,9 @@
 const interpret = (inp) => {
-  return numParser(inp) || strParser(inp)
+  return numParser(inp) || strParser(inp) || 
+  expressionParser(inp) || symbolParser(inp) || whiteSpaceParser(inp)
 }
 
-const digitParser = (input) => {return (input >=0 && input <= 9) ? input:null}
+const digitParser = (input) => {return (input >='0' && input <= '9') ? input:null}
 const expParser = (input) => {return (input === 'E' || input === 'e') ? input:null}
 const signParser = (input) => {return (input === '+' || input === '-') ? input:null}
 const next = (arr, input) => {
@@ -63,20 +64,45 @@ const strParser = (input) => {
 const hexChars = (input) => {return ((input >= 'A' && input <= 'F') || (input >= 'a' && input <= 'f') || digitParser(input))? input : null}
 const specialChars = (input) => {return (input === '"' || input === '\\' || input === '/' || input === 'b' || input === 'f' || input === 'n' ||input === 'r' || input === 't' || input === 'u') ? input : null}
 const whiteSpaceParser = (input) => {return (input[0] === ' ') ? [input[0], input.slice(1)] : null}
+const symbolParser = (input) => {return (input[0] === '+' || input[0] === '*' || input[0] === '-' || input[0] === '/') ? [input[0], input.slice(1)] : null}
+const env = {
+  '+' : (operands) => operands.reduce((a, b) => a + b),
+  '*' : (operands) => operands.reduce((a, b) => a * b),
+  '-' : (operands) => operands.reduce((a, b) => a - b),
+  '/' : (operands) => operands.reduce((a, b) => a / b)
+}
 
-const next = (arr, input) => {
-  arr[0] = input[arr[2]]
-  arr[1] += input[arr[2]]
-  arr[2]++
-  return arr
- }
 const expressionParser = (input) => {
-  let arr = ['','',0]
-  if (input[arr[2]] === '('){
-    next(arr)
-    while(input[[arr[2]]!==')']){
-      result = interpret(input.slice(arr[2]))
-    }
+  let operator, operands = [], result
+  if (input[0] === '('){
+    input = input.slice(1)
+    input = checkIntermittentSpace(input)
+    if (input[0] === ')') return null
+    result = interpret(input)
+    operator = result[0]
+    input = result[1]
+    input = checkIntermittentSpace(input)
+    result = (interpret(input))
+    operands.push(result[0])
+    input = result[1]
+    input = checkIntermittentSpace(input)
+    operands.push(interpret(input)[0])
+  }
+  if (operator && operands){
+    return evaluate(operator, operands)
+  }
+ 
+}
+
+const checkIntermittentSpace = (input) =>{
+  while(input[0]!==')' && whiteSpaceParser(input)){
+    input = input.slice(1)
+  }
+  return input
+}
+const evaluate = (operator, operands) => {
+  if (env.hasOwnProperty(operator)){
+    return (env[operator](operands))
   }
 }
 module.exports = interpret
