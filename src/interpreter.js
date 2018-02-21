@@ -75,18 +75,29 @@ const env = {
 const expressionParser = (input) => {
   let operator, operands = [], result
   if (input[0] === '('){
-    input = input.slice(1)
-    input = checkIntermittentSpace(input)
+    input = checkIntermittentSpace(input.slice(1))
     if (input[0] === ')') return null
     result = interpret(input)
-    operator = result[0]
-    input = result[1]
-    input = checkIntermittentSpace(input)
-    result = (interpret(input))
-    operands.push(result[0])
-    input = result[1]
-    input = checkIntermittentSpace(input)
-    operands.push(interpret(input)[0])
+    if (result){
+      operator = result[0],input = result[1]
+      result = interpret(checkIntermittentSpace(input))
+      if(result){
+        operands.push(result[0])
+        result = (interpret(checkIntermittentSpace(result[1])))
+        if (result){
+          operands.push(result[0])
+        } else if(operator === '+' || operator === '-'){
+          let temp = operands[0]
+          operands[0] = 0
+          operands[1] = temp
+        } else {
+          let temp = operands[0]
+          operands[0] = 1
+          operands[1] = temp
+        }
+      } else return null
+     } else return null
+    
   }
   if (operator && operands){
     return evaluate(operator, operands)
