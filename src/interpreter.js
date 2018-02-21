@@ -87,13 +87,9 @@ const expressionParser = (input) => {
         if (result){
           operands.push(result[0])
         } else if(operator === '+' || operator === '-'){
-          let temp = operands[0]
-          operands[0] = 0
-          operands[1] = temp
+          swap(operands, 0)
         } else {
-          let temp = operands[0]
-          operands[0] = 1
-          operands[1] = temp
+          swap(operands, 1)
         }
       } else return null
      } else return null
@@ -110,6 +106,11 @@ const checkIntermittentSpace = (input) =>{
     input = input.slice(1)
   }
   return input
+}
+const swap = (operands, value) => {
+  let temp = operands[0]
+  operands[0] = value
+  operands[1] = temp
 }
 const evaluate = (operator, operands) => {
   if (env.hasOwnProperty(operator)){
