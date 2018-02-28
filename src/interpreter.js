@@ -1,6 +1,6 @@
 const interpret = (inp) => {
   let value = numParser(inp) || strParser(inp) || boolParser(inp) ||
-  expressionParser(inp) || whiteSpaceParser(inp)
+  expressionParser(inp) || ifParser(inp) || whiteSpaceParser(inp)
   if (value) {
     if (value[1] === '\n' || value[1] === '') {
       return value[0]
@@ -143,6 +143,23 @@ const expressionParser = (input) => {
       }
     } else return null
   } else return null
+}
+
+const ifParser = (input) => {
+  if (input.startsWith('if')) {
+    input = checkIntermittentSpace(input).slice(2)
+    let result = interpret(input)
+    let condition = result[0]
+    console.log('evaluating ', result[1])
+    result = interpret(checkIntermittentSpace(result[1]))
+    console.log('for thenExp ', result)
+    let thenExp = result[0]
+    console.log('then expression ', thenExp)
+    console.log('evaluating ', result[1])
+    let elseExp = interpret(checkIntermittentSpace(result[1]))
+    console.log('elseExp ', elseExp)
+    return condition ? thenExp : elseExp
+  }
 }
 
 const checkIntermittentSpace = (input) => {
