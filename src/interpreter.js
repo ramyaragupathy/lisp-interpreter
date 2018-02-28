@@ -76,81 +76,62 @@ const specialChars = (input) => { return (input === '"' || input === '\\' || inp
 const whiteSpaceParser = (input) => { return (input[0] === ' ') ? [input[0], input.slice(1)] : null }
 
 const env = {
-  // '>=': (operands) => operands.reduce((a, b) => { return a === '#f' ? '#f' : (a >= b ? b : '#f') }),
-  '>=': (operands) => operands.reduce((prev, cur) => {
-    if (prev[1]) {
-      if (prev[0] >= cur[0]) {
-        return (cur === operands[operands.length - 1]) ? true : [cur[0], true]
-      } else { return (cur === operands[operands.length - 1]) ? false : [cur[0], false] }
-    } else return false
-  }),
-  '<=': (operands) => operands.reduce((prev, cur) => {
-    if (prev[1]) {
-      if (prev[0] > cur[0]) {
-        return (cur === operands[operands.length - 1]) ? true : [cur[0], true]
-      } else { return (cur === operands[operands.length - 1]) ? false : [cur[0], false] }
-    } else return false
-  }),
-  '+': (operands) => operands.reduce((prev, cur) => {
-    return typeof (prev[0]) !== 'number' || typeof (cur[0]) !== 'number' ? false : [prev[0] + cur[0]]
-  }),
-  '*': (operands) => operands.reduce((prev, cur) => {
-    return typeof (prev[0]) !== 'number' || typeof (cur[0]) !== 'number' ? false : [prev[0] * cur[0]]
-  }),
-  '-': (operands) => operands.reduce((prev, cur) => {
-    return typeof (prev[0]) !== 'number' || typeof (cur[0]) !== 'number' ? false : [prev[0] - cur[0]]
-  }),
-  '/': (operands) => operands.reduce((prev, cur) => {
-    return typeof (prev[0]) !== 'number' || typeof (cur[0]) !== 'number' ? false : [prev[0] / cur[0]]
-  }),
-  '>': (operands) => operands.reduce((prev, cur) => {
-    if (prev[1]) {
-      if (prev[0] > cur[0]) {
-        return (cur === operands[operands.length - 1]) ? true : [cur[0], true]
-      } else { return (cur === operands[operands.length - 1]) ? false : [cur[0], false] }
-    } else return false
-  }),
-  '<': (operands) => operands.reduce((prev, cur) => {
-    if (prev[1]) {
-      if (prev[0] < cur[0]) {
-        return (cur === operands[operands.length - 1]) ? true : [cur[0], true]
-      } else { return (cur === operands[operands.length - 1]) ? false : [cur[0], false] }
-    } else return false
-  }),
+  '>=': (operands) => operands.reduce((a, b) => { return a >= b ? b : false }),
+  '<=': (operands) => operands.reduce((a, b) => { return a <= b ? b : false }),
+  '+': (operands) => operands.reduce((a, b) => { if (typeof a === 'number' && typeof b === 'number'){ return a + b } else { return null } }),
+  '*': (operands) => operands.reduce((a, b) => a * b),
+  '-': (operands) => operands.reduce((a, b) => a - b),
+  '/': (operands) => operands.reduce((a, b) => a / b),
+  '>': (operands) => operands.reduce((a, b) => { return a > b ? b : false }),
+  '<': (operands) => operands.reduce((a, b) => { return a < b ? b : false }),
   'abs': (operands) => Math.abs(...operands),
   'mod': (operands) => operands.reduce((a, b) => a % b),
-  'operators': []
+  'operators': [],
+  'math_operators': ['+', '-', '*', '/'],
+  'rel_operatos': ['>', '<', '>=', '<=']
 }
 
 const mathExpParser = (input) => {
-  // console.log('expression')
+  console.log('expression')
+  env['operators'] = []
   let operator, result
   let operands = []
   input = checkIntermittentSpace(input)
   if (input[0] === '(') {
-    // console.log('EXPRESSION START')
+    console.log('EXPRESSION START')
     input = input.slice(1)
+    console.log('Inp: ', input)
     if (input[0] === ')') { return '()' }
     for (var keyword in env) {
       if (input.startsWith(keyword)) {
         operator = keyword
-        env['operators'].push(operator)
         input = input.slice(keyword.length)
+        console.log('Inp: ', input)
         break
       }
     }
+    console.log('Operator: ', operator)
     if (operator) {
       while (input[0] !== ')') {
         result = interpret(checkIntermittentSpace(input))
         if (result) {
-          operands.push([result[0], true])
+          operands.push(result[0])
           input = result[1]
         } else return null
       }
+      console.log('Operands ', operands)
+      console.log('Inp ', input)
       if (operator && operands && input[0] === ')') {
-        let value = evaluate(operator, operands)
-        // console.log('VALUE ', value)
-        return [value, input.slice(1)]
+        let value
+        while (operands.length >= 2 && operands[0]) {
+          let elements = [operands.splice(0, 1)[0], operands.splice(0, 1)[0]]
+          console.log('Elements: ', elements)
+          operands.unshift(evaluate(operator, elements))
+          console.log('First value: ', operands)
+        }
+
+        console.log('VALUE ', operands)
+        return [operands[0], input.slice(1)]
       }
     } else return null
   } else return null
