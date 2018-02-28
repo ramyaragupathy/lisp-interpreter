@@ -1,6 +1,6 @@
 const interpret = (inp) => {
   let value = numParser(inp) || strParser(inp) || boolParser(inp) ||
-  mathExpParser(inp) || whiteSpaceParser(inp)
+  expressionParser(inp) || whiteSpaceParser(inp)
   if (value) {
     if (value[1] === '\n' || value[1] === '') {
       return value[0]
@@ -78,59 +78,67 @@ const whiteSpaceParser = (input) => { return (input[0] === ' ') ? [input[0], inp
 const env = {
   '>=': (operands) => operands.reduce((a, b) => { return a >= b ? b : false }),
   '<=': (operands) => operands.reduce((a, b) => { return a <= b ? b : false }),
-  '+': (operands) => operands.reduce((a, b) => { if (typeof a === 'number' && typeof b === 'number'){ return a + b } else { return null } }),
+  '+': (operands) => operands.reduce((a, b) => a + b),
   '*': (operands) => operands.reduce((a, b) => a * b),
   '-': (operands) => operands.reduce((a, b) => a - b),
   '/': (operands) => operands.reduce((a, b) => a / b),
   '>': (operands) => operands.reduce((a, b) => { return a > b ? b : false }),
   '<': (operands) => operands.reduce((a, b) => { return a < b ? b : false }),
-  'abs': (operands) => Math.abs(...operands),
-  'mod': (operands) => operands.reduce((a, b) => a % b),
+  'abs': (operands) => Math.abs(operands),
+  'sin': (operands) => Math.sin(operands),
+  'cos': (operands) => Math.cos(operands),
+  'tan': (operands) => Math.tan(operands),
+  'mod': (operands) => operands.reduce((a, b) => { return a % b }),
+  'expt': (operands) => Math.pow(operands[0], operands[1]),
   'operators': [],
   'math_operators': ['+', '-', '*', '/'],
-  'rel_operatos': ['>', '<', '>=', '<=']
+  'rel_operatos': ['>', '<', '>=', '<='],
+  'unary_operators': ['abs', 'sin', 'cos', 'tan'],
+  'binary_operators': ['mod', 'expt']
 }
 
-const mathExpParser = (input) => {
-  console.log('expression')
+const expressionParser = (input) => {
   env['operators'] = []
   let operator, result
   let operands = []
   input = checkIntermittentSpace(input)
   if (input[0] === '(') {
-    console.log('EXPRESSION START')
     input = input.slice(1)
-    console.log('Inp: ', input)
     if (input[0] === ')') { return '()' }
     for (var keyword in env) {
       if (input.startsWith(keyword)) {
         operator = keyword
         input = input.slice(keyword.length)
-        console.log('Inp: ', input)
         break
       }
     }
-    console.log('Operator: ', operator)
     if (operator) {
       while (input[0] !== ')') {
         result = interpret(checkIntermittentSpace(input))
         if (result) {
           operands.push(result[0])
-          input = result[1]
+          input = checkIntermittentSpace(result[1])
         } else return null
       }
-      console.log('Operands ', operands)
-      console.log('Inp ', input)
+      input = checkIntermittentSpace(input)
       if (operator && operands && input[0] === ')') {
         let value
-        while (operands.length >= 2 && operands[0]) {
-          let elements = [operands.splice(0, 1)[0], operands.splice(0, 1)[0]]
-          console.log('Elements: ', elements)
-          operands.unshift(evaluate(operator, elements))
-          console.log('First value: ', operands)
+        if (env['unary_operators'].indexOf(operator) >= 0) {
+          if (operands.length > 1) {
+            return 'Only one operand allowed'
+          } else {
+            let elements = operands[0]
+            operands[0] = evaluate(operator, elements)
+          }
+        } else if (env['binary_operators'].indexOf(operator) >= 0) {
+          if (operands.length > 2) {
+            return 'Error: ' + operator + ': too many arguments (at most: 2 got: ' + operands.length + ') ' + '[' + operator + ']'
+          }
         }
-
-        console.log('VALUE ', operands)
+        while (operands.length >= 2 && operands[0]) {
+          let elements = [operands.shift(), operands.shift()]
+          operands.unshift(evaluate(operator, elements))
+        }
         return [operands[0], input.slice(1)]
       }
     } else return null
