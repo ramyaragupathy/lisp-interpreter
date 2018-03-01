@@ -1,6 +1,6 @@
 const interpret = (inp) => {
   let value = numParser(inp) || strParser(inp) || boolParser(inp) ||
-  expressionParser(inp) || ifParser(inp) || whiteSpaceParser(inp)
+  ifParser(inp) || defineParser(inp) || lambdaParser(inp) || expressionParser(inp) || whiteSpaceParser(inp)
   if (value) {
     if (value[1] === '\n' || value[1] === '') {
       return value[0]
@@ -8,8 +8,9 @@ const interpret = (inp) => {
   } else return null
 }
 const boolParser = (input) => {
-  return input.startsWith('#t') ? ['#t', input.slice(2, input.length)]
-    : (input.startsWith('#f')) ? ['#f', input.slice(5, input.length)] : null
+  input = checkIntermittentSpace(input)
+  return input.startsWith('#t') ? ['#t', input.slice(2)]
+    : (input.startsWith('#f')) ? ['#f', input.slice(2)] : null
 }
 const digitParser = (input) => { return (input >= '0' && input <= '9') ? input : null }
 const expParser = (input) => { return (input === 'E' || input === 'e') ? input : null }
@@ -21,6 +22,7 @@ const next = (arr, input) => {
   return arr
 }
 const numParser = (input) => {
+  input = checkIntermittentSpace(input)
   let arr = ['', '', 0]
   if (signParser(input[arr[2]]) || digitParser(input[arr[2]])) {
     next(arr, input)
@@ -125,14 +127,14 @@ const expressionParser = (input) => {
         let value
         if (env['unary_operators'].indexOf(operator) >= 0) {
           if (operands.length > 1) {
-            return 'Only one operand allowed'
+            return ('Error: ' + operator + ': too many arguments (at most: 1 got: ' + operands.length + ') ' + '[' + operator + ']')
           } else {
             let elements = operands[0]
             operands[0] = evaluate(operator, elements)
           }
         } else if (env['binary_operators'].indexOf(operator) >= 0) {
           if (operands.length > 2) {
-            return 'Error: ' + operator + ': too many arguments (at most: 2 got: ' + operands.length + ') ' + '[' + operator + ']'
+            return ('Error: ' + operator + ': too many arguments (at most: 2 got: ' + operands.length + ') ' + '[' + operator + ']')
           }
         }
         while (operands.length >= 2 && operands[0]) {
@@ -146,9 +148,13 @@ const expressionParser = (input) => {
 }
 
 const ifParser = (input) => {
-  if (input.startsWith('if')) {
-    input = checkIntermittentSpace(input).slice(2)
+  input = checkIntermittentSpace(input)
+  if (input.startsWith('(if')) {
+    console.log('if parser')
+    input = checkIntermittentSpace(input).slice(3)
+    console.log('input ', input)
     let result = interpret(input)
+    console.log('result for condition ', result)
     let condition = result[0]
     console.log('evaluating ', result[1])
     result = interpret(checkIntermittentSpace(result[1]))
@@ -156,9 +162,9 @@ const ifParser = (input) => {
     let thenExp = result[0]
     console.log('then expression ', thenExp)
     console.log('evaluating ', result[1])
-    let elseExp = interpret(checkIntermittentSpace(result[1]))
+    let elseExp = interpret(checkIntermittentSpace(result[1]))[0]
     console.log('elseExp ', elseExp)
-    return condition ? thenExp : elseExp
+    return (condition === '#f' || condition === 'false') ? elseExp : thenExp
   }
 }
 
