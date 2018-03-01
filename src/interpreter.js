@@ -1,11 +1,11 @@
 const interpret = (inp) => {
   let value = numParser(inp) || strParser(inp) || boolParser(inp) ||
-  ifParser(inp) || defineParser(inp) || lambdaParser(inp) || expressionParser(inp) || whiteSpaceParser(inp)
+  ifParser(inp) || defineParser(inp) || lambdaParser(inp) || expressionParser(inp) || envParser(inp) || whiteSpaceParser(inp)
   if (value) {
     if (value[1] === '\n' || value[1] === '') {
       return value[0]
     } else return value
-  } else return null
+  }
 }
 const boolParser = (input) => {
   input = checkIntermittentSpace(input)
@@ -116,8 +116,11 @@ const expressionParser = (input) => {
     }
     if (operator) {
       while (input[0] !== ')') {
+        console.log('Input now ', input)
         result = interpret(checkIntermittentSpace(input))
+        console.log('Result ',result)
         if (result) {
+          console.log('first operand value ', result[0])
           operands.push(result[0])
           input = checkIntermittentSpace(result[1])
         } else return null
@@ -165,6 +168,36 @@ const ifParser = (input) => {
     let elseExp = interpret(checkIntermittentSpace(result[1]))[0]
     console.log('elseExp ', elseExp)
     return (condition === '#f' || condition === 'false') ? elseExp : thenExp
+  }
+}
+
+const defineParser = (input) => {
+  input = checkIntermittentSpace(input)
+  if (input.startsWith('(define')) {
+    console.log('define parser')
+    input = input.slice(7)
+    console.log(input)
+    let splitElem = checkIntermittentSpace(input).split(' ')
+    env[splitElem[0]] = interpret(splitElem[1])[0]
+  }
+}
+const envParser = (input) => {
+  input = checkIntermittentSpace(input)
+  let arr = ['', '', 0]
+  console.log(arr)
+  while (input[arr[2]] !== ' ' && input[arr[2]] !== '\n') {
+    next(arr, input)
+    console.log(arr)
+    if (env.hasOwnProperty(arr[1])) return [env[arr[1]], input.slice(arr[2])]
+  }
+  console.log(env[arr[1]])
+  return env.hasOwnProperty(arr[1]) ? [env[arr[1]], input.slice(arr[2])] : null
+}
+const lambdaParser = (input) => {
+  input = checkIntermittentSpace(input)
+  if (input.startsWith('(lambda')) {
+    console.log('lambda parser')
+    return (x) => x * x
   }
 }
 
