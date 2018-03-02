@@ -1,6 +1,6 @@
 const interpret = (inp) => {
   let value = numParser(inp) || strParser(inp) || boolParser(inp) ||
-  ifParser(inp) || defineParser(inp) || lambdaParser(inp) || expressionParser(inp) || envParser(inp) || whiteSpaceParser(inp)
+  ifParser(inp) || defineParser(inp) || expressionParser(inp) || envParser(inp) || whiteSpaceParser(inp)
   if (value) {
     if (value[1] === '\n' || value[1] === '') {
       return value[0]
@@ -116,11 +116,8 @@ const expressionParser = (input) => {
     }
     if (operator) {
       while (input[0] !== ')') {
-        console.log('Input now ', input)
         result = interpret(checkIntermittentSpace(input))
-        console.log('Result ',result)
         if (result) {
-          console.log('first operand value ', result[0])
           operands.push(result[0])
           input = checkIntermittentSpace(result[1])
         } else return null
@@ -153,51 +150,79 @@ const expressionParser = (input) => {
 const ifParser = (input) => {
   input = checkIntermittentSpace(input)
   if (input.startsWith('(if')) {
-    console.log('if parser')
     input = checkIntermittentSpace(input).slice(3)
-    console.log('input ', input)
     let result = interpret(input)
-    console.log('result for condition ', result)
     let condition = result[0]
-    console.log('evaluating ', result[1])
-    result = interpret(checkIntermittentSpace(result[1]))
-    console.log('for thenExp ', result)
-    let thenExp = result[0]
-    console.log('then expression ', thenExp)
-    console.log('evaluating ', result[1])
-    let elseExp = interpret(checkIntermittentSpace(result[1]))[0]
-    console.log('elseExp ', elseExp)
-    return (condition === '#f' || condition === 'false') ? elseExp : thenExp
+    if (result[1] !== '\n' && result[1][0] !== ')') {
+      result = interpret(checkIntermittentSpace(result[1]))
+      let thenExp = result[0]
+      if (result[1] !== '\n' && result[1][0] !== ')') {
+        let elseExp = interpret(checkIntermittentSpace(result[1]))[0]
+        return (condition === '#f' || condition === false) ? elseExp : thenExp
+      } else return (condition === '#f' || condition === false) ? null : thenExp
+    } else return condition
   }
 }
 
 const defineParser = (input) => {
   input = checkIntermittentSpace(input)
   if (input.startsWith('(define')) {
-    console.log('define parser')
-    input = input.slice(7)
-    console.log(input)
-    let splitElem = checkIntermittentSpace(input).split(' ')
-    env[splitElem[0]] = interpret(splitElem[1])[0]
+    input = checkIntermittentSpace(input.slice(7))
+    let key = ''
+    while (input[0] !== ' ') {
+      key += input[0]
+      input = input.slice(1)
+    }
+    let keyValue = ''
+    input = checkIntermittentSpace(input)
+    let result = interpret(input)
+    if (!result) {
+      let arr = ['', '', 0]
+      while (input[arr[2]] !== '\n') {
+        next(arr, input)
+      }
+      keyValue = arr[1]
+    } else {
+      keyValue = result[0]
+    }
+    env[key] = keyValue
   }
 }
+
 const envParser = (input) => {
   input = checkIntermittentSpace(input)
   let arr = ['', '', 0]
-  console.log(arr)
-  while (input[arr[2]] !== ' ' && input[arr[2]] !== '\n') {
+  while (input[arr[2]] !== ' ' && input[arr[2]] !== '\n' && (input[arr[2]] !== '(' && input[arr[2]] !== ')')) {
     next(arr, input)
-    console.log(arr)
-    if (env.hasOwnProperty(arr[1])) return [env[arr[1]], input.slice(arr[2])]
   }
-  console.log(env[arr[1]])
-  return env.hasOwnProperty(arr[1]) ? [env[arr[1]], input.slice(arr[2])] : null
+  if (env.hasOwnProperty(arr[1])) return [env[arr[1]], input.slice(arr[2])]
 }
 const lambdaParser = (input) => {
   input = checkIntermittentSpace(input)
   if (input.startsWith('(lambda')) {
-    console.log('lambda parser')
-    return (x) => x * x
+    input = checkIntermittentSpace(input.slice(7))
+    let arg = ''
+    if (input[0] === '(') {
+      input = input.slice(1)
+      while (input[0] !== ')') {
+        arg += input[0]
+        input = input.slice(1)
+      }
+    }
+    input = checkIntermittentSpace(input.slice(1))
+    let funcBody = '('
+    if (input[0] === '(') {
+      input = input.slice(1)
+      while (input[0] !== ')') {
+        funcBody += input[0]
+        input = input.slice(1)
+      }
+    }
+    funcBody += ')'
+    console.log('Input ', input)
+    console.log('Function Body ', funcBody)
+    input = checkIntermittentSpace(input)
+    return [arg + funcBody, input]
   }
 }
 

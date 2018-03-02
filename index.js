@@ -4,6 +4,7 @@ const myEval = (cmd, context, filename, callback) => {
   callback(null, interpreter(cmd))
 }
 const replServer = repl.start({
-  prompt: 'lisp-interpreter > ',
+  prompt: '> ',
+  ignoreUndefined: true,
   eval: myEval
 })
