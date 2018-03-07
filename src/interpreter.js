@@ -1,18 +1,13 @@
-const interpret = (inp) => {
+const interpret = (inp, localEnv) => {
   let value = numParser(inp) || strParser(inp) || boolParser(inp) ||
-              ifParser(inp) || defineParser(inp) || expressionParser(inp) ||
-              envLookUp(inp) || whiteSpaceParser(inp)
+              ifParser(inp, localEnv) || defineParser(inp) || expressionParser(inp, localEnv) ||
+              envLookUp(inp, localEnv) || whiteSpaceParser(inp)
   if (value) {
     if (value[1] === '\n' || value[1] === '') {
       return value[0]
     } else {
       if (typeof value[0] === 'string' && value[0].startsWith('(lambda')) {
         let result = lambdaParser(value)[0]
-        env['variables'].forEach(function (item, index) {
-          if (env.hasOwnProperty(item)) {
-            delete env[item]
-          }
-        })
         return result
       } else return value
     }
@@ -119,36 +114,26 @@ const expressionParser = (input, localEnv) => {
   input = checkIntermittentSpace(input)
 
   if (input[0] === '(') {
-    console.log('Input for expressionParser', input)
     input = input.slice(1)
     if (input[0] === ')') { return '()' }
     for (var keyword in env) {
       if (input.startsWith(keyword)) {
         operator = keyword
-        // console.log('Found a match in env ', operator)
         input = input.slice(keyword.length)
         break
       }
     }
-    console.log('Operator ', operator)
-
     if (operator) {
       input = checkIntermittentSpace(input)
       while (input[0] !== ')') {
-        result = interpret(checkIntermittentSpace(input))
-        // console.log('Result ', result)
+        result = interpret(checkIntermittentSpace(input), localEnv)
         if (result) {
           operands.push(result[0])
           input = checkIntermittentSpace(result[1])
         } else return null
       }
-
-      console.log('Operands ' + operands + ' for ' + operator)
       if (env['lambda'].indexOf(operator) >= 0) {
-        console.log('encountered a lambda operator')
-        console.log([env[operator], operands.toString()])
-        // console.log('Lambda as an operator ', lambdaParser([env[operator], operands.toString()]))
-        return lambdaParser([env[operator], operands.toString()])
+        return lambdaParser([env[operator], operands.toString(), input.slice(1)])
       }
       input = checkIntermittentSpace(input)
       if (operator && operands && input[0] === ')') {
@@ -169,33 +154,25 @@ const expressionParser = (input, localEnv) => {
           let elements = [operands.shift(), operands.shift()]
           operands.unshift(evaluate(operator, elements))
         }
-        console.log('after computing ', operands)
         return [operands[0], input.slice(1)]
       }
     } else return null
   } else return null
 }
 
-const ifParser = (input) => {
+const ifParser = (input, localEnv) => {
   input = checkIntermittentSpace(input)
   if (input.startsWith('(if')) {
     input = checkIntermittentSpace(input).slice(3)
-    let result = interpret(input)
+    let result = interpret(input, localEnv)
     let condition = result[0]
     if (result[1] !== '\n' && result[1][0] !== ')') {
-      result = interpret(checkIntermittentSpace(result[1]))
-      console.log('result after condition ', result)
+      result = interpret(checkIntermittentSpace(result[1]), localEnv)
       let thenExp = result[0]
-      console.log('Then ', thenExp)
-      // console.log('rest ', result[1])
-      console.log('env ', env)
       if (!(condition === '#f' || condition === false)) {
-        console.log('retruning value from then exp')
         return thenExp
       } else if (result[1] !== '\n' && result[1][0] !== ')') {
-        // console.log(interpret(checkIntermittentSpace(result[1])))
-        let elseExp = interpret(checkIntermittentSpace(result[1]))[0]
-        console.log('else ', elseExp)
+        let elseExp = interpret(checkIntermittentSpace(result[1]), localEnv)[0]
         return (condition === '#f' || condition === false) ? elseExp : thenExp
       } else return (condition === '#f' || condition === false) ? null : thenExp
     } else return condition
@@ -215,7 +192,6 @@ const defineParser = (input) => {
     input = checkIntermittentSpace(input)
     let result = interpret(input)
     if (!result) {
-      console.log('define identifies this as lambda')
       if (env['lambda'].indexOf(key) < 0) {
         env['lambda'].push(key)
       }
@@ -225,49 +201,57 @@ const defineParser = (input) => {
       }
       keyValue = arr[1]
     } else {
-      // env['variables'] = result[0]
       keyValue = result[0]
     }
     env[key] = keyValue
   }
 }
 
-const envLookUp = (input) => {
+const envLookUp = (input, localEnv) => {
   input = checkIntermittentSpace(input)
   let arr = ['', '', 0]
   while (input[arr[2]] !== ' ' && input[arr[2]] !== '\n' && (input[arr[2]] !== '(' && input[arr[2]] !== ')')) {
     next(arr, input)
   }
-  // console.log('ENV lookup ', [env[arr[1]], input.slice(arr[2])])
-  if (env.hasOwnProperty(arr[1]) && env[arr[1]] !== undefined) return [env[arr[1]], input.slice(arr[2])]
+  if (localEnv) { if (localEnv.hasOwnProperty(arr[1]) && localEnv[arr[1]] !== undefined) return [localEnv[arr[1]], input.slice(arr[2])] } else if (env.hasOwnProperty(arr[1]) && env[arr[1]] !== undefined) return [env[arr[1]], input.slice(arr[2])]
 }
 const lambdaParser = (value) => {
   let localEnv = {}
-  console.log('Input for lambda parser ', value)
   let input = checkIntermittentSpace(value[0])
-  // console.log(typeof interpret(checkIntermittentSpace(value[1])))
-  let argValue = interpret(checkIntermittentSpace(value[1]))
-  console.log('argValue ', argValue)
   if (input.startsWith('(lambda')) {
+    let argValue = interpret(checkIntermittentSpace(value[1]), localEnv)
+    let argValueList = []
+    while (argValue !== undefined) {
+      if (argValue[0]) {
+        argValueList.push(argValue[0])
+        argValue = interpret(checkIntermittentSpace(argValue[1]))
+      } else {
+        argValueList.push(argValue)
+        argValue = undefined
+      }
+    }
+    let argList = []
     input = checkIntermittentSpace(input.slice(7))
     let arg = ''
     if (input[0] === '(') {
       input = input.slice(1)
       while (input[0] !== ')') {
-        arg += input[0]
-        input = input.slice(1)
+        if (input[0] === ' ') {
+          if (arg) argList.push(arg)
+          arg = ''
+          input = checkIntermittentSpace(input)
+        } else {
+          arg += input[0]
+          input = input.slice(1)
+        }
       }
     }
-    env[arg] = argValue
-    localEnv[arg] = argValue
-    if (env['variables'].indexOf(arg) < 0) {
-      env['variables'].push(arg)
-    }
-
-    // localEnv[arg] = argValue
-    console.log(' fib(' + argValue + ')')
-    // console.log('New value ', env[arg])
-
+    argList.push(arg)
+    if (argList[0]) {
+      argList.forEach(function (item, index) {
+        localEnv[item] = argValueList[index]
+      })
+    } else localEnv[arg] = argValueList[0]
     input = checkIntermittentSpace(input.slice(1))
     let funcBody = '('
     let openBrackets = 0
@@ -285,10 +269,7 @@ const lambdaParser = (value) => {
         input = input.slice(1)
       }
     }
-    console.log('Function Body ', funcBody)
-    input = checkIntermittentSpace(input)
-    console.log('Brackets ', closeBrackets)
-    return [interpret(funcBody, localEnv), input]
+    return [interpret(funcBody, localEnv), value[2]]
   }
 }
 
