@@ -84,14 +84,14 @@ const specialChars = (input) => { return (input === '"' || input === '\\' || inp
 const whiteSpaceParser = (input) => { return (input[0] === ' ') ? [input[0], input.slice(1)] : null }
 
 const env = {
-  '>=': (operands) => operands.reduce((a, b) => { return a >= b ? b : false }),
-  '<=': (operands) => operands.reduce((a, b) => { return a <= b ? b : false }),
-  '+': (operands) => operands.reduce((a, b) => a + b),
-  '*': (operands) => operands.reduce((a, b) => a * b),
-  '-': (operands) => operands.reduce((a, b) => a - b),
-  '/': (operands) => operands.reduce((a, b) => a / b),
-  '>': (operands) => operands.reduce((a, b) => { return a > b ? b : false }),
-  '<': (operands) => operands.reduce((a, b) => { return a < b ? b : false }),
+  '>=': (operands) => !!operands.reduce((a, b) => { return a >= b ? b : false }),
+  '<=': (operands) => !!operands.reduce((a, b) => { return a <= b ? b : false }),
+  '+': (operands) => !!operands.reduce((a, b) => a + b),
+  '*': (operands) => !!operands.reduce((a, b) => a * b),
+  '-': (operands) => !!operands.reduce((a, b) => a - b),
+  '/': (operands) => !!operands.reduce((a, b) => a / b),
+  '>': (operands) => !!operands.reduce((a, b) => { return a > b ? b : false }),
+  '<': (operands) => !!operands.reduce((a, b) => { return a < b ? b : false }),
   'abs': (operands) => Math.abs(operands),
   'sin': (operands) => Math.sin(operands),
   'cos': (operands) => Math.cos(operands),
@@ -103,8 +103,7 @@ const env = {
   'rel_operatos': ['>', '<', '>=', '<='],
   'unary_operators': ['abs', 'sin', 'cos', 'tan'],
   'binary_operators': ['mod', 'expt'],
-  'lambda': [],
-  'variables': []
+  'lambda': []
 }
 
 const expressionParser = (input, localEnv) => {
